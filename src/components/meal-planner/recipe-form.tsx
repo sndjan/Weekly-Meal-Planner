@@ -82,7 +82,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+        <div className='space-y-2'>
           <Label htmlFor="name">Recipe Name *</Label>
           <Input
             id="name"
@@ -95,7 +95,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
           />
         </div>
 
-        <div>
+        <div className='space-y-2'>
           <Label htmlFor="description">Description</Label>
           <Textarea
             id="description"
@@ -107,7 +107,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
           />
         </div>
 
-        <div>
+        <div className='space-y-2' >
           <Label htmlFor="ingredients">Ingredients *</Label>
           <Textarea
             id="ingredients"
@@ -121,7 +121,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
           />
         </div>
 
-        <div>
+        <div className='space-y-2'>
           <Label htmlFor="preparation_steps">Preparation Steps *</Label>
           <Textarea
             id="preparation_steps"
@@ -136,7 +136,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
+          <div className='space-y-2'>
             <Label htmlFor="serving_size">Serving Size</Label>
             <Input
               id="serving_size"
@@ -149,7 +149,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
               }
             />
           </div>
-          <div>
+          <div className='space-y-2'>
             <Label htmlFor="calories">Calories (per serving)</Label>
             <Input
               id="calories"
@@ -164,7 +164,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div>
+          <div className='space-y-2'>
             <Label htmlFor="protein">Protein (g)</Label>
             <Input
               id="protein"
@@ -176,7 +176,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
               }
             />
           </div>
-          <div>
+          <div className='space-y-2'>
             <Label htmlFor="carbs">Carbs (g)</Label>
             <Input
               id="carbs"
@@ -188,7 +188,7 @@ export function RecipeForm({ onRecipeCreated }: RecipeFormProps) {
               }
             />
           </div>
-          <div>
+          <div className='space-y-2'  >
             <Label htmlFor="fats">Fats (g)</Label>
             <Input
               id="fats"

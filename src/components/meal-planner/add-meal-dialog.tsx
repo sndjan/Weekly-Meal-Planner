@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Plus } from 'lucide-react';
 import type { Recipe, MealType } from '@/types/database';
 import toast from 'react-hot-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 interface AddMealDialogProps {
   dayOfWeek: number;
@@ -154,24 +155,26 @@ export function AddMealDialog({ dayOfWeek, mealType, onMealAdded }: AddMealDialo
         </DialogHeader>
 
         <div className="space-y-4">
-          <div>
+          <div className="space-y-2"> 
             <Label htmlFor="recipe-select">Select Recipe</Label>
-            <select
-              id="recipe-select"
+            <Select
               value={selectedRecipe}
-              onChange={(e) => setSelectedRecipe(e.target.value)}
-              className="w-full px-3 py-2 border border-input rounded-md transition-colors hover:border-primary/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+              onValueChange={(value) => setSelectedRecipe(value)}
             >
-              <option value="">-- Select a recipe --</option>
-              {recipes.map((recipe) => (
-                <option key={recipe.id} value={recipe.id}>
-                  {recipe.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="-- Select a recipe --" />
+              </SelectTrigger>
+              <SelectContent>
+                {recipes.map((recipe) => (
+                  <SelectItem key={recipe.id} value={recipe.id}>
+                    {recipe.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="serving-size">Serving Size</Label>
             <Input
               id="serving-size"
