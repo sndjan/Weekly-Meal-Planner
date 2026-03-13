@@ -30,23 +30,9 @@ export default function SignUp() {
       if (error) {
         toast.error(error.message);
       } else if (data?.user) {
-        // Create user record in the users table
-        // @ts-ignore - TypeScript server not inferring Database types correctly
-        const { error: userError } = await supabase
-          .from('users')
-          // @ts-ignore - TypeScript server not inferring Database types correctly
-          .insert({
-            id: data.user.id,
-            email: email,
-          });
-
-        if (userError) {
-          console.error('Error creating user record:', userError);
-          toast.error('Account created but failed to create user profile');
-        } else {
-          toast.success('Sign up successful! Please check your email.');
-          router.push('/auth/signin');
-        }
+        // User record is automatically created by the database trigger on auth.users
+        toast.success('Sign up successful! Please check your email.');
+        router.push('/auth/signin');
       }
     } catch (err) {
       toast.error('An error occurred');
