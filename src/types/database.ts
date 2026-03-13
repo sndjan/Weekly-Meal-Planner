@@ -29,15 +29,17 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       recipes: {
         Row: {
           id: string;
           user_id: string;
           name: string;
-          description: string | null;
           ingredients: string;
-          preparation_steps: string;
+          preparation_steps: string | null;
+          source_url: string | null;
+          prep_time: string | null;
           calories: number | null;
           protein: number | null;
           carbs: number | null;
@@ -52,9 +54,10 @@ export type Database = {
           id?: string;
           user_id: string;
           name: string;
-          description?: string | null;
           ingredients: string;
-          preparation_steps: string;
+          preparation_steps?: string | null;
+          source_url?: string | null;
+          prep_time?: string | null;
           calories?: number | null;
           protein?: number | null;
           carbs?: number | null;
@@ -69,9 +72,10 @@ export type Database = {
           id?: string;
           user_id?: string;
           name?: string;
-          description?: string | null;
           ingredients?: string;
-          preparation_steps?: string;
+          preparation_steps?: string | null;
+          source_url?: string | null;
+          prep_time?: string | null;
           calories?: number | null;
           protein?: number | null;
           carbs?: number | null;
@@ -82,6 +86,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       recipe_tags: {
         Row: {
@@ -102,6 +107,7 @@ export type Database = {
           tag_id?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       tags: {
         Row: {
@@ -122,6 +128,7 @@ export type Database = {
           name?: string;
           created_at?: string;
         };
+        Relationships: [];
       };
       meal_plans: {
         Row: {
@@ -145,6 +152,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
       planned_meals: {
         Row: {
@@ -174,6 +182,7 @@ export type Database = {
           serving_size?: number;
           created_at?: string;
         };
+        Relationships: [];
       };
       user_preferences: {
         Row: {
@@ -206,6 +215,7 @@ export type Database = {
           created_at?: string;
           updated_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: {

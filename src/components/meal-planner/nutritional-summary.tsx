@@ -2,15 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { UserPreferences, NutritionValues } from '@/types/database';
+import type { UserPreferences } from '@/types/database';
 
 interface NutritionalSummaryProps {
-  dayIndex: number;
   plannedRecipes: Array<{ calories?: number; protein?: number; carbs?: number; fats?: number }>;
 }
 
-export function NutritionalSummary({ dayIndex, plannedRecipes }: NutritionalSummaryProps) {
+export function NutritionalSummary({ plannedRecipes }: NutritionalSummaryProps) {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const supabase = createClient();
 
@@ -41,10 +39,10 @@ export function NutritionalSummary({ dayIndex, plannedRecipes }: NutritionalSumm
   // Calculate totals
   const totals = plannedRecipes.reduce(
     (acc, recipe) => ({
-      calories: acc.calories + (recipe.calories || 0),
-      protein: acc.protein + (recipe.protein || 0),
-      carbs: acc.carbs + (recipe.carbs || 0),
-      fats: acc.fats + (recipe.fats || 0),
+      calories: acc.calories || 0 + (recipe.calories || 0),
+      protein: acc.protein || 0 + (recipe.protein || 0),
+      carbs: acc.carbs || 0 + (recipe.carbs || 0),
+      fats: acc.fats || 0 + (recipe.fats || 0),
     }),
     { calories: 0, protein: 0, carbs: 0, fats: 0 }
   );
@@ -102,10 +100,10 @@ export function NutritionalSummary({ dayIndex, plannedRecipes }: NutritionalSumm
   return (
     <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
       <h4 className="font-medium text-sm mb-3">Daily Summary</h4>
-      <NutritionBar label="Protein (g)" actual={totals.protein} target={targets.protein} />
-      <NutritionBar label="Carbs (g)" actual={totals.carbs} target={targets.carbs} />
-      <NutritionBar label="Fats (g)" actual={totals.fats} target={targets.fats} />
-      <NutritionBar label="Calories" actual={totals.calories} target={targets.calories} />
+      <NutritionBar label="Protein (g)" actual={totals.protein || 0} target={targets.protein} />
+      <NutritionBar label="Carbs (g)" actual={totals.carbs || 0} target={targets.carbs} />
+      <NutritionBar label="Fats (g)" actual={totals.fats || 0} target={targets.fats} />
+      <NutritionBar label="Calories" actual={totals.calories || 0} target={targets.calories} />
     </div>
   );
 }

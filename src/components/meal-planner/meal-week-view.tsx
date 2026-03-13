@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Flame, Droplets, Wheat, Zap, UtensilsCrossed, Trash2 } from 'lucide-react';
 import type { Recipe, PlannedMeal, MealType, NutritionValues } from '@/types/database';
 import { AddMealDialog } from './add-meal-dialog';
+import { ShoppingList } from './shopping-list';
+import { generateShoppingListFromPlannedMeals } from '@/lib/shopping-list';
 import toast from 'react-hot-toast';
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -14,6 +16,7 @@ export function MealWeekView() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dragOverSlot, setDragOverSlot] = useState<string | null>(null);
   const supabase = createClient();
 
   const loadData = async () => {
@@ -76,6 +79,83 @@ export function MealWeekView() {
     );
   };
 
+  const handleDropRecipe = async (
+    e: React.DragEvent<HTMLTableCellElement>,
+    dayIndex: number,
+    mealType: MealType
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      const data = e.dataTransfer.getData('application/json');
+      const { type, recipe } = JSON.parse(data);
+
+      if (type !== 'recipe') return;
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      // Check if there's already a meal at this slot
+      const existingMeal = getMealForSlot(dayIndex, mealType);
+      if (existingMeal) {
+        // Remove the existing meal first
+        await supabase.from('planned_meals').delete().eq('id', existingMeal.id);
+      }
+
+      // Get or create meal plan for this week
+      const today = new Date();
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      weekStart.setHours(0, 0, 0, 0);
+      const dateStr = weekStart.toISOString().split('T')[0];
+
+      let mealPlanId: string;
+      const { data: existingPlan } = await supabase
+        .from('meal_plans')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('week_start_date', dateStr)
+        .single<{ id: string }>();
+
+      if (existingPlan) {
+        mealPlanId = existingPlan.id;
+      } else {
+        const { data: newPlan, error: createError } = await supabase
+          .from('meal_plans')
+          .insert({
+            user_id: user.id,
+            week_start_date: dateStr,
+          })
+          .select('id')
+          .single<{ id: string }>();
+
+        if (createError || !newPlan) throw createError;
+        mealPlanId = newPlan.id;
+      }
+
+      // Add the new meal
+      const { error: mealError } = await supabase.from('planned_meals').insert({
+        meal_plan_id: mealPlanId,
+        recipe_id: recipe.id,
+        day_of_week: dayIndex,
+        meal_type: mealType,
+        serving_size: 1,
+      });
+
+      if (mealError) throw mealError;
+
+      toast.success(`${recipe.name} added to ${mealType}`);
+      await loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to add meal');
+    }
+  };
+
   const getDailyNutritionTotals = (dayIndex: number): NutritionValues => {
     return plannedMeals.reduce(
       (totals, meal) => {
@@ -105,6 +185,11 @@ export function MealWeekView() {
       }
     );
   };
+
+  const shoppingListItems = useMemo(
+    () => generateShoppingListFromPlannedMeals(plannedMeals, recipes),
+    [plannedMeals, recipes]
+  );
 
   const handleRemoveMeal = async (mealId: string) => {
     try {
@@ -155,11 +240,32 @@ export function MealWeekView() {
                 {DAYS.map((day, dayIndex) => {
                   const meal = getMealForSlot(dayIndex, mealType);
                   const recipeForMeal = meal ? recipes.find((r) => r.id === meal.recipe_id) : undefined;
+                  const slotKey = `${day}-${mealType}`;
+                  const isDragOverThis = dragOverSlot === slotKey;
 
                   return (
                     <td
-                      key={`${day}-${mealType}`}
-                      className="px-4 py-3 border-r border-gray-200 last:border-r-0 align-top min-h-28 w-40"
+                      key={slotKey}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.dataTransfer.dropEffect = 'copy';
+                        setDragOverSlot(slotKey);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.currentTarget === e.target) {
+                          setDragOverSlot(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        setDragOverSlot(null);
+                        handleDropRecipe(e, dayIndex, mealType);
+                      }}
+                      className={`px-4 py-3 border-r border-gray-200 last:border-r-0 align-top min-h-28 w-40 transition-colors ${
+                        isDragOverThis ? 'bg-blue-50 ring-2 ring-blue-300' : ''
+                      }`}
                     >
                       {meal && recipeForMeal ? (
                         <div className="space-y-2 group">
@@ -254,6 +360,8 @@ export function MealWeekView() {
           </tfoot>
         </table>
       </div>
+
+      <ShoppingList items={shoppingListItems} />
     </div>
   );
 }
