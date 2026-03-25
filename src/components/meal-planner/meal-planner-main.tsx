@@ -9,10 +9,8 @@ import {
   NutritionTargetSettings as NutritionTargetSettingsControl,
   type NutritionTargetSettings as NutritionTargetSettingsState,
 } from "./nutrition-target-settings";
-import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import type { Recipe } from "@/types/database";
-import { Plus } from "lucide-react";
 
 export function MealPlannerMain() {
   const [isRecipeFormOpen, setIsRecipeFormOpen] = useState(false);
@@ -62,10 +60,6 @@ export function MealPlannerMain() {
                 }
               }}
             >
-              <Button onClick={handleNewRecipe}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Recipe
-              </Button>
               <RecipeForm
                 key={recipeFormKey}
                 recipe={editingRecipe}
@@ -87,6 +81,7 @@ export function MealPlannerMain() {
           <div>
             <RecipeLibrary
               key={refreshKey}
+              onNewRecipe={handleNewRecipe}
               onRecipeSelect={() => {
                 // Handle recipe selection for drag and drop or modal
               }}
