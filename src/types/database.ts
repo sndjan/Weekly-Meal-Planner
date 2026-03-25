@@ -192,6 +192,10 @@ export type Database = {
           calories_target: number;
           carbs_target: number;
           fats_target: number;
+          protein_target_enabled: boolean;
+          calories_target_enabled: boolean;
+          carbs_target_enabled: boolean;
+          fats_target_enabled: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -202,6 +206,10 @@ export type Database = {
           calories_target?: number;
           carbs_target?: number;
           fats_target?: number;
+          protein_target_enabled?: boolean;
+          calories_target_enabled?: boolean;
+          carbs_target_enabled?: boolean;
+          fats_target_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -212,6 +220,10 @@ export type Database = {
           calories_target?: number;
           carbs_target?: number;
           fats_target?: number;
+          protein_target_enabled?: boolean;
+          calories_target_enabled?: boolean;
+          carbs_target_enabled?: boolean;
+          fats_target_enabled?: boolean;
           created_at?: string;
           updated_at?: string;
         };

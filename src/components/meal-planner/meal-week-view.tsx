@@ -1,18 +1,39 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { Flame, Droplets, Wheat, Zap, UtensilsCrossed, Trash2 } from 'lucide-react';
-import type { Recipe, PlannedMeal, MealType, NutritionValues } from '@/types/database';
-import { AddMealDialog } from './add-meal-dialog';
-import { ShoppingList } from './shopping-list';
-import { generateShoppingListFromPlannedMeals } from '@/lib/shopping-list';
-import toast from 'react-hot-toast';
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Flame, Droplets, Wheat, Zap, UtensilsCrossed, X } from "lucide-react";
+import type {
+  Recipe,
+  PlannedMeal,
+  MealType,
+  NutritionValues,
+} from "@/types/database";
+import { AddMealDialog } from "./add-meal-dialog";
+import { ShoppingList } from "./shopping-list";
+import { generateShoppingListFromPlannedMeals } from "@/lib/shopping-list";
+import type { NutritionTargetSettings } from "./nutrition-target-settings";
+import { DEFAULT_NUTRITION_TARGETS } from "./nutrition-target-settings";
+import toast from "react-hot-toast";
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+const MEAL_TYPES: MealType[] = ["breakfast", "lunch", "dinner", "snack"];
 
-export function MealWeekView() {
+interface MealWeekViewProps {
+  nutritionTargets?: NutritionTargetSettings;
+}
+
+export function MealWeekView({
+  nutritionTargets = DEFAULT_NUTRITION_TARGETS,
+}: MealWeekViewProps) {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,22 +50,22 @@ export function MealWeekView() {
 
       // Get all recipes
       const { data: recipesData } = await supabase
-        .from('recipes')
-        .select('*')
-        .eq('user_id', user.id);
+        .from("recipes")
+        .select("*")
+        .eq("user_id", user.id);
 
       // Get current week's meal plan
       const today = new Date();
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
-      const dateStr = weekStart.toISOString().split('T')[0];
+      const dateStr = weekStart.toISOString().split("T")[0];
 
       const { data: mealPlansData } = await supabase
-        .from('meal_plans')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('week_start_date', dateStr);
+        .from("meal_plans")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("week_start_date", dateStr);
 
       if (recipesData) setRecipes(recipesData);
 
@@ -53,9 +74,9 @@ export function MealWeekView() {
 
         if (currentMealPlanId) {
           const { data: mealsData } = await supabase
-            .from('planned_meals')
-            .select('*')
-            .eq('meal_plan_id', currentMealPlanId);
+            .from("planned_meals")
+            .select("*")
+            .eq("meal_plan_id", currentMealPlanId);
 
           if (mealsData) setPlannedMeals(mealsData);
         }
@@ -63,7 +84,7 @@ export function MealWeekView() {
         setPlannedMeals([]);
       }
     } catch (err) {
-      toast.error('Failed to load data');
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -73,25 +94,28 @@ export function MealWeekView() {
     loadData();
   }, [supabase]);
 
-  const getMealForSlot = (dayIndex: number, mealType: MealType): PlannedMeal | undefined => {
+  const getMealForSlot = (
+    dayIndex: number,
+    mealType: MealType,
+  ): PlannedMeal | undefined => {
     return plannedMeals.find(
-      (meal) => meal.day_of_week === dayIndex && meal.meal_type === mealType
+      (meal) => meal.day_of_week === dayIndex && meal.meal_type === mealType,
     );
   };
 
   const handleDropRecipe = async (
     e: React.DragEvent<HTMLTableCellElement>,
     dayIndex: number,
-    mealType: MealType
+    mealType: MealType,
   ) => {
     e.preventDefault();
     e.stopPropagation();
 
     try {
-      const data = e.dataTransfer.getData('application/json');
+      const data = e.dataTransfer.getData("application/json");
       const { type, recipe } = JSON.parse(data);
 
-      if (type !== 'recipe') return;
+      if (type !== "recipe") return;
 
       const {
         data: { user },
@@ -103,7 +127,7 @@ export function MealWeekView() {
       const existingMeal = getMealForSlot(dayIndex, mealType);
       if (existingMeal) {
         // Remove the existing meal first
-        await supabase.from('planned_meals').delete().eq('id', existingMeal.id);
+        await supabase.from("planned_meals").delete().eq("id", existingMeal.id);
       }
 
       // Get or create meal plan for this week
@@ -111,26 +135,26 @@ export function MealWeekView() {
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - today.getDay());
       weekStart.setHours(0, 0, 0, 0);
-      const dateStr = weekStart.toISOString().split('T')[0];
+      const dateStr = weekStart.toISOString().split("T")[0];
 
       let mealPlanId: string;
       const { data: existingPlan } = await supabase
-        .from('meal_plans')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('week_start_date', dateStr)
+        .from("meal_plans")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("week_start_date", dateStr)
         .single<{ id: string }>();
 
       if (existingPlan) {
         mealPlanId = existingPlan.id;
       } else {
         const { data: newPlan, error: createError } = await supabase
-          .from('meal_plans')
+          .from("meal_plans")
           .insert({
             user_id: user.id,
             week_start_date: dateStr,
           })
-          .select('id')
+          .select("id")
           .single<{ id: string }>();
 
         if (createError || !newPlan) throw createError;
@@ -138,7 +162,7 @@ export function MealWeekView() {
       }
 
       // Add the new meal
-      const { error: mealError } = await supabase.from('planned_meals').insert({
+      const { error: mealError } = await supabase.from("planned_meals").insert({
         meal_plan_id: mealPlanId,
         recipe_id: recipe.id,
         day_of_week: dayIndex,
@@ -152,7 +176,7 @@ export function MealWeekView() {
       await loadData();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to add meal');
+      toast.error("Failed to add meal");
     }
   };
 
@@ -163,7 +187,9 @@ export function MealWeekView() {
           return totals;
         }
 
-        const recipe = recipes.find((currentRecipe) => currentRecipe.id === meal.recipe_id);
+        const recipe = recipes.find(
+          (currentRecipe) => currentRecipe.id === meal.recipe_id,
+        );
         if (!recipe) {
           return totals;
         }
@@ -171,7 +197,8 @@ export function MealWeekView() {
         const servingMultiplier = meal.serving_size || 1;
 
         return {
-          calories: totals.calories + (recipe.calories ?? 0) * servingMultiplier,
+          calories:
+            totals.calories + (recipe.calories ?? 0) * servingMultiplier,
           protein: totals.protein + (recipe.protein ?? 0) * servingMultiplier,
           carbs: totals.carbs + (recipe.carbs ?? 0) * servingMultiplier,
           fats: totals.fats + (recipe.fats ?? 0) * servingMultiplier,
@@ -182,28 +209,28 @@ export function MealWeekView() {
         protein: 0,
         carbs: 0,
         fats: 0,
-      }
+      },
     );
   };
 
   const shoppingListItems = useMemo(
     () => generateShoppingListFromPlannedMeals(plannedMeals, recipes),
-    [plannedMeals, recipes]
+    [plannedMeals, recipes],
   );
 
   const handleRemoveMeal = async (mealId: string) => {
     try {
       const { error } = await supabase
-        .from('planned_meals')
+        .from("planned_meals")
         .delete()
-        .eq('id', mealId);
+        .eq("id", mealId);
 
       if (error) throw error;
 
       setPlannedMeals((prev) => prev.filter((m) => m.id !== mealId));
-      toast.success('Meal removed');
+      toast.success("Meal removed");
     } catch (err) {
-      toast.error('Failed to remove meal');
+      toast.error("Failed to remove meal");
       console.error(err);
     }
   };
@@ -233,13 +260,18 @@ export function MealWeekView() {
           </thead>
           <tbody>
             {MEAL_TYPES.map((mealType) => (
-              <tr key={mealType} className="border-b border-gray-200 last:border-b-0">
+              <tr
+                key={mealType}
+                className="border-b border-gray-200 last:border-b-0"
+              >
                 <td className="px-4 py-3 font-medium text-sm capitalize bg-gray-50 border-r border-gray-200 w-24">
                   {mealType}
                 </td>
                 {DAYS.map((day, dayIndex) => {
                   const meal = getMealForSlot(dayIndex, mealType);
-                  const recipeForMeal = meal ? recipes.find((r) => r.id === meal.recipe_id) : undefined;
+                  const recipeForMeal = meal
+                    ? recipes.find((r) => r.id === meal.recipe_id)
+                    : undefined;
                   const slotKey = `${day}-${mealType}`;
                   const isDragOverThis = dragOverSlot === slotKey;
 
@@ -249,7 +281,7 @@ export function MealWeekView() {
                       onDragOver={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        e.dataTransfer.dropEffect = 'copy';
+                        e.dataTransfer.dropEffect = "copy";
                         setDragOverSlot(slotKey);
                       }}
                       onDragLeave={(e) => {
@@ -264,7 +296,7 @@ export function MealWeekView() {
                         handleDropRecipe(e, dayIndex, mealType);
                       }}
                       className={`px-4 py-3 border-r border-gray-200 last:border-r-0 align-top min-h-28 w-40 transition-colors ${
-                        isDragOverThis ? 'bg-blue-50 ring-2 ring-blue-300' : ''
+                        isDragOverThis ? "bg-blue-50 ring-2 ring-blue-300" : ""
                       }`}
                     >
                       {meal && recipeForMeal ? (
@@ -275,21 +307,27 @@ export function MealWeekView() {
                             </p>
                             <button
                               onClick={() => handleRemoveMeal(meal.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                              className="p-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <X className="h-4 w-4 text-gray-500" />
                             </button>
                           </div>
                           <div className="space-y-1 text-xs text-gray-600">
                             <div className="flex items-center gap-1">
                               <UtensilsCrossed className="h-3.5 w-3.5 text-gray-400" />
-                              <span>{meal.serving_size} serving{meal.serving_size !== 1 ? 's' : ''}</span>
+                              <span>
+                                {meal.serving_size} serving
+                                {meal.serving_size !== 1 ? "s" : ""}
+                              </span>
                             </div>
                             {recipeForMeal.protein && (
                               <div className="flex items-center gap-1">
                                 <Zap className="h-3.5 w-3.5 text-amber-500" />
                                 <span>
-                                  {(recipeForMeal.protein * meal.serving_size).toFixed(1)}g protein
+                                  {(
+                                    recipeForMeal.protein * meal.serving_size
+                                  ).toFixed(0)}
+                                  g protein
                                 </span>
                               </div>
                             )}
@@ -329,28 +367,48 @@ export function MealWeekView() {
                           <Flame className="h-3.5 w-3.5 text-orange-500" />
                           Calories
                         </span>
-                        <span>{totals.calories.toFixed(0)}</span>
+                        <span>
+                          {totals.calories.toFixed(0)}
+                          {nutritionTargets.calories_target_enabled
+                            ? ` / ${nutritionTargets.calories_target.toFixed(0)}`
+                            : ""}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center gap-2">
                         <span className="flex items-center gap-1">
                           <Zap className="h-3.5 w-3.5 text-amber-500" />
                           Protein
                         </span>
-                        <span>{totals.protein.toFixed(0)}g</span>
+                        <span>
+                          {totals.protein.toFixed(0)}g
+                          {nutritionTargets.protein_target_enabled
+                            ? ` / ${nutritionTargets.protein_target.toFixed(0)}g`
+                            : ""}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center gap-2">
                         <span className="flex items-center gap-1">
                           <Wheat className="h-3.5 w-3.5 text-yellow-600" />
                           Carbs
                         </span>
-                        <span>{totals.carbs.toFixed(0)}g</span>
+                        <span>
+                          {totals.carbs.toFixed(0)}g
+                          {nutritionTargets.carbs_target_enabled
+                            ? ` / ${nutritionTargets.carbs_target.toFixed(0)}g`
+                            : ""}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center gap-2">
                         <span className="flex items-center gap-1">
                           <Droplets className="h-3.5 w-3.5 text-sky-500" />
                           Fats
                         </span>
-                        <span>{totals.fats.toFixed(0)}g</span>
+                        <span>
+                          {totals.fats.toFixed(0)}g
+                          {nutritionTargets.fats_target_enabled
+                            ? ` / ${nutritionTargets.fats_target.toFixed(0)}g`
+                            : ""}
+                        </span>
                       </div>
                     </div>
                   </td>

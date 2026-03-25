@@ -1,11 +1,12 @@
-import type { Metadata } from 'next';
-import { AuthProvider } from '@/lib/auth/context';
-import { Toaster } from 'react-hot-toast';
-import './globals.css';
+import type { Metadata } from "next";
+import { AuthProvider } from "@/lib/auth/context";
+import { Toaster } from "react-hot-toast";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Weekly Meal Planner',
-  description: 'Plan your weekly meals and generate shopping lists automatically',
+  title: "Weekly Meal Planner",
+  description:
+    "Plan your weekly meals and generate shopping lists automatically",
 };
 
 export default function RootLayout({
@@ -18,7 +19,17 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           {children}
-          <Toaster position="top-right" />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              success: {
+                iconTheme: {
+                  primary: "#15803d",
+                  secondary: "white",
+                },
+              },
+            }}
+          />
         </AuthProvider>
       </body>
     </html>
