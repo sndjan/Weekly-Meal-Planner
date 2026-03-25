@@ -312,25 +312,62 @@ export function MealWeekView({
                               <X className="h-4 w-4 text-gray-500" />
                             </button>
                           </div>
-                          <div className="space-y-1 text-xs text-gray-600">
-                            <div className="flex items-center gap-1">
+                          <div className="space-y-1 text-xs text-gray-600 flex flex-wrap gap-2">
+                            {/* <div className="flex items-center gap-1">
                               <UtensilsCrossed className="h-3.5 w-3.5 text-gray-400" />
                               <span>
                                 {meal.serving_size} serving
                                 {meal.serving_size !== 1 ? "s" : ""}
                               </span>
-                            </div>
-                            {recipeForMeal.protein && (
-                              <div className="flex items-center gap-1">
-                                <Zap className="h-3.5 w-3.5 text-amber-500" />
-                                <span>
-                                  {(
-                                    recipeForMeal.protein * meal.serving_size
-                                  ).toFixed(0)}
-                                  g protein
-                                </span>
-                              </div>
-                            )}
+                            </div> */}
+                            {recipeForMeal.calories &&
+                              nutritionTargets.calories_target_enabled && (
+                                <div className="flex items-center gap-1">
+                                  <Flame className="h-3.5 w-3.5 text-orange-500" />
+                                  <span>
+                                    {(
+                                      recipeForMeal.calories * meal.serving_size
+                                    ).toFixed(0)}
+                                    g
+                                  </span>
+                                </div>
+                              )}
+                            {recipeForMeal.protein &&
+                              nutritionTargets.protein_target_enabled && (
+                                <div className="flex items-center gap-1">
+                                  <Zap className="h-3.5 w-3.5 text-amber-500" />
+                                  <span>
+                                    {(
+                                      recipeForMeal.protein * meal.serving_size
+                                    ).toFixed(0)}
+                                    g
+                                  </span>
+                                </div>
+                              )}
+                            {recipeForMeal.carbs &&
+                              nutritionTargets.carbs_target_enabled && (
+                                <div className="flex items-center gap-1">
+                                  <Wheat className="h-3.5 w-3.5 text-yellow-600" />
+                                  <span>
+                                    {(
+                                      recipeForMeal.carbs * meal.serving_size
+                                    ).toFixed(0)}
+                                    g
+                                  </span>
+                                </div>
+                              )}
+                            {recipeForMeal.fats &&
+                              nutritionTargets.fats_target_enabled && (
+                                <div className="flex items-center gap-1">
+                                  <Droplets className="h-3.5 w-3.5 text-sky-500" />
+                                  <span>
+                                    {(
+                                      recipeForMeal.fats * meal.serving_size
+                                    ).toFixed(0)}
+                                    g
+                                  </span>
+                                </div>
+                              )}
                           </div>
                         </div>
                       ) : (

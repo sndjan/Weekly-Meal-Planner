@@ -5,21 +5,79 @@ import { ShoppingListItem } from "@/types/database";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Download, Pencil, Plus, Trash2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 
 interface ShoppingListProps {
   items: ShoppingListItem[];
+}
+
+const CHECKED_ITEMS_STORAGE_KEY =
+  "weekly-meal-planner:shopping-list:checked-items";
+
+function getItemStorageKey(item: ShoppingListItem): string {
+  return `${item.ingredient.trim().toLowerCase()}|${item.unit.trim().toLowerCase()}`;
 }
 
 export function ShoppingList({ items }: ShoppingListProps) {
   const [editableItems, setEditableItems] = useState<ShoppingListItem[]>(items);
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isStorageHydrated, setIsStorageHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const storedItems = window.localStorage.getItem(
+        CHECKED_ITEMS_STORAGE_KEY,
+      );
+
+      if (!storedItems) {
+        return;
+      }
+
+      const parsed = JSON.parse(storedItems);
+
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const validKeys = parsed.filter(
+        (entry): entry is string => typeof entry === "string",
+      );
+      setCheckedItems(new Set(validKeys));
+    } catch {
+      // Ignore malformed data and start with an empty set.
+    } finally {
+      setIsStorageHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isStorageHydrated) {
+      return;
+    }
+
+    window.localStorage.setItem(
+      CHECKED_ITEMS_STORAGE_KEY,
+      JSON.stringify(Array.from(checkedItems)),
+    );
+  }, [checkedItems, isStorageHydrated]);
 
   useEffect(() => {
     setEditableItems(items);
-    setCheckedItems(new Set());
+
+    const validItemKeys = new Set(items.map((item) => getItemStorageKey(item)));
+
+    setCheckedItems((prev) => {
+      const nextCheckedItems = new Set<string>();
+
+      prev.forEach((key) => {
+        if (validItemKeys.has(key)) {
+          nextCheckedItems.add(key);
+        }
+      });
+
+      return nextCheckedItems;
+    });
   }, [items]);
 
   const toggleItem = (rowKey: string) => {
@@ -46,24 +104,22 @@ export function ShoppingList({ items }: ShoppingListProps) {
   };
 
   const removeItem = (index: number) => {
+    const removedItem = editableItems[index];
+
     setEditableItems((prev) =>
       prev.filter((_, currentIndex) => currentIndex !== index),
     );
 
-    const nextCheckedItems = new Set<string>();
-    checkedItems.forEach((key) => {
-      const itemIndex = Number.parseInt(key.split("-")[1] ?? "-1", 10);
+    if (!removedItem) {
+      return;
+    }
 
-      if (itemIndex < index) {
-        nextCheckedItems.add(key);
-      }
-
-      if (itemIndex > index) {
-        nextCheckedItems.add(`row-${itemIndex - 1}`);
-      }
+    const removedItemKey = getItemStorageKey(removedItem);
+    setCheckedItems((prev) => {
+      const nextCheckedItems = new Set(prev);
+      nextCheckedItems.delete(removedItemKey);
+      return nextCheckedItems;
     });
-
-    setCheckedItems(nextCheckedItems);
   };
 
   const addCustomItem = () => {
@@ -77,44 +133,10 @@ export function ShoppingList({ items }: ShoppingListProps) {
     ]);
   };
 
-  const handleDownload = () => {
-    const cleanedItems = editableItems.filter(
-      (item) => item.ingredient.trim().length > 0,
-    );
-
-    if (cleanedItems.length === 0) {
-      toast.error("Nothing to download");
-      return;
-    }
-
-    const content = cleanedItems
-      .map((item) => {
-        const qty = Number.isInteger(item.quantity)
-          ? String(item.quantity)
-          : item.quantity.toFixed(2);
-        return item.unit
-          ? `${qty} ${item.unit} ${item.ingredient}`
-          : `${qty} ${item.ingredient}`;
-      })
-      .join("\n");
-
-    const element = document.createElement("a");
-    element.setAttribute(
-      "href",
-      "data:text/plain;charset=utf-8," + encodeURIComponent(content),
-    );
-    element.setAttribute("download", "shopping-list.txt");
-    element.style.display = "none";
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    toast.success("Shopping list downloaded");
-  };
-
   const viewRows = editableItems.map((item, index) => {
     const key = `row-${index}`;
-    const isChecked = checkedItems.has(key);
+    const checkKey = getItemStorageKey(item);
+    const isChecked = checkedItems.has(checkKey);
     const qty = Number.isInteger(item.quantity)
       ? String(item.quantity)
       : item.quantity.toFixed(2);
@@ -127,6 +149,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
       item,
       index,
       key,
+      checkKey,
       isChecked,
       qty,
       formattedIngredient,
@@ -180,7 +203,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                   <input
                     type="checkbox"
                     checked={false}
-                    onChange={() => toggleItem(row.key)}
+                    onChange={() => toggleItem(row.checkKey)}
                     className="w-4 h-4"
                   />
                   <span>{row.itemLabel.trim()}</span>
@@ -202,7 +225,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                       <input
                         type="checkbox"
                         checked
-                        onChange={() => toggleItem(row.key)}
+                        onChange={() => toggleItem(row.checkKey)}
                         className="w-4 h-4"
                       />
                       <span className="line-through">
@@ -225,7 +248,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                   <input
                     type="checkbox"
                     checked={row.isChecked}
-                    onChange={() => toggleItem(row.key)}
+                    onChange={() => toggleItem(row.checkKey)}
                     className="w-4 h-4"
                   />
 
