@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Flame, Droplets, Wheat, Zap, UtensilsCrossed, X } from "lucide-react";
+import { Flame, Droplets, Wheat, Zap, X } from "lucide-react";
 import type {
   Recipe,
   PlannedMeal,
