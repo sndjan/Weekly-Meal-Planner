@@ -8,6 +8,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-dm-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        heading: ["var(--font-nunito)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -41,6 +45,35 @@ module.exports = {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        brand: {
+          accent: "#4f9d6e",
+          "accent-dark": "#2f7a52",
+          "accent-bg": "#eaf3ec",
+          "accent-bg-light": "#f3faf4",
+          "stat-bg": "#f7faf7",
+          track: "#e0efe3",
+          "track-alt": "#d7ebdc",
+          "today-border": "#d8e8dc",
+          ink: "#1c2b22",
+          "ink-alt": "#20261f",
+          secondary: "#63706a",
+          tertiary: "#75837b",
+          muted: "#9aa79f",
+          disabled: "#b6bdb8",
+          "icon-muted": "#c7d0ca",
+          "app-bg": "#f7f6f3",
+          "app-bg-alt": "#fbfbf9",
+          "card-border": "#ececec",
+          divider: "#f2f2ef",
+          "divider-alt": "#f0f0ee",
+          "input-border": "#e5e5e2",
+          "chip-neutral": "#f2f1ee",
+          warn: "#c98a2e",
+          red: "#d64545",
+          orange: "#e0a72e",
+          purple: "#8a6fc7",
+          brown: "#b08b5c",
         },
       },
       borderRadius: {

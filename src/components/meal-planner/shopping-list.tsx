@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { ShoppingListItem } from "@/types/database";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Plus, Trash2 } from "lucide-react";
@@ -163,35 +162,31 @@ export function ShoppingList({ items }: ShoppingListProps) {
   const checkedViewRows = viewRows.filter((row) => row.isChecked);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-semibold">Shopping List</CardTitle>
-          <div className="space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={addCustomItem}
-              disabled={!isEditMode}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant={isEditMode ? "default" : "outline"}
-              onClick={() => setIsEditMode((prev) => !prev)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            {/* <Button size="sm" variant="outline" onClick={handleDownload}>
-              <Download className="h-4 w-4" />
-            </Button> */}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <div>
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={addCustomItem}
+          disabled={!isEditMode}
+          aria-label="Artikel hinzufügen"
+          title="Artikel hinzufügen"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={isEditMode ? "default" : "outline"}
+          size="icon"
+          onClick={() => setIsEditMode((prev) => !prev)}
+          aria-label="Bearbeitungsmodus umschalten"
+          title="Bearbeitungsmodus umschalten"
+        >
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="mt-3">
         {editableItems.length === 0 ? (
-          <p className="text-sm text-gray-500">No items in shopping list</p>
+          <p className="text-sm text-brand-tertiary">Keine Artikel auf der Einkaufsliste</p>
         ) : !isEditMode ? (
           <div className="space-y-2">
             <ul className="space-y-1">
@@ -212,9 +207,9 @@ export function ShoppingList({ items }: ShoppingListProps) {
             </ul>
 
             {checkedViewRows.length > 0 && (
-              <details className=" border-gray-200 py-2">
-                <summary className="cursor-pointer select-none text-xs text-gray-600">
-                  Completed ({checkedViewRows.length})
+              <details className=" border-brand-card-border py-2">
+                <summary className="cursor-pointer select-none text-xs text-brand-tertiary">
+                  Erledigt ({checkedViewRows.length})
                 </summary>
                 <ul className="mt-2 space-y-1">
                   {checkedViewRows.map((row) => (
@@ -228,7 +223,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                         onChange={() => toggleItem(row.checkKey)}
                         className="w-4 h-4"
                       />
-                      <span className="line-through">
+                      <span className="text-brand-disabled line-through">
                         {row.itemLabel.trim()}
                       </span>
                     </li>
@@ -272,7 +267,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                     onChange={(event) =>
                       updateItem(row.index, { unit: event.target.value })
                     }
-                    placeholder="unit"
+                    placeholder="Einheit"
                     className="h-8"
                   />
 
@@ -281,7 +276,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
                     onChange={(event) =>
                       updateItem(row.index, { ingredient: event.target.value })
                     }
-                    placeholder="ingredient"
+                    placeholder="Zutat"
                     className={`h-8 ${row.isChecked ? "line-through" : ""}`}
                   />
 
@@ -298,7 +293,7 @@ export function ShoppingList({ items }: ShoppingListProps) {
             })}
           </ul>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

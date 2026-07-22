@@ -160,7 +160,7 @@ export type Database = {
           meal_plan_id: string;
           recipe_id: string;
           day_of_week: number;
-          meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+          meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "extra";
           serving_size: number;
           created_at: string;
         };
@@ -169,7 +169,7 @@ export type Database = {
           meal_plan_id: string;
           recipe_id: string;
           day_of_week: number;
-          meal_type: "breakfast" | "lunch" | "dinner" | "snack";
+          meal_type: "breakfast" | "lunch" | "dinner" | "snack" | "extra";
           serving_size?: number;
           created_at?: string;
         };
@@ -178,7 +178,7 @@ export type Database = {
           meal_plan_id?: string;
           recipe_id?: string;
           day_of_week?: number;
-          meal_type?: "breakfast" | "lunch" | "dinner" | "snack";
+          meal_type?: "breakfast" | "lunch" | "dinner" | "snack" | "extra";
           serving_size?: number;
           created_at?: string;
         };
@@ -229,6 +229,129 @@ export type Database = {
         };
         Relationships: [];
       };
+      food_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          is_plant: boolean;
+          is_legume: boolean;
+          is_fermented: boolean;
+          is_whole_grain: boolean;
+          has_added_sugar: boolean;
+          is_processed: boolean;
+          color: FoodColor | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          is_plant?: boolean;
+          is_legume?: boolean;
+          is_fermented?: boolean;
+          is_whole_grain?: boolean;
+          has_added_sugar?: boolean;
+          is_processed?: boolean;
+          color?: FoodColor | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          is_plant?: boolean;
+          is_legume?: boolean;
+          is_fermented?: boolean;
+          is_whole_grain?: boolean;
+          has_added_sugar?: boolean;
+          is_processed?: boolean;
+          color?: FoodColor | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      recipe_ingredients: {
+        Row: {
+          id: string;
+          recipe_id: string;
+          food_item_id: string;
+          quantity: number;
+          unit: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipe_id: string;
+          food_item_id: string;
+          quantity?: number;
+          unit?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          recipe_id?: string;
+          food_item_id?: string;
+          quantity?: number;
+          unit?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      health_targets: {
+        Row: {
+          id: string;
+          user_id: string;
+          plant_diversity_target: number;
+          fermented_min: number;
+          fermented_max: number;
+          legume_min: number;
+          legume_max: number;
+          whole_grain_target_pct: number;
+          added_sugar_max_meals: number;
+          unprocessed_target_pct: number;
+          color_diversity_target: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plant_diversity_target?: number;
+          fermented_min?: number;
+          fermented_max?: number;
+          legume_min?: number;
+          legume_max?: number;
+          whole_grain_target_pct?: number;
+          added_sugar_max_meals?: number;
+          unprocessed_target_pct?: number;
+          color_diversity_target?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plant_diversity_target?: number;
+          fermented_min?: number;
+          fermented_max?: number;
+          legume_min?: number;
+          legume_max?: number;
+          whole_grain_target_pct?: number;
+          added_sugar_max_meals?: number;
+          unprocessed_target_pct?: number;
+          color_diversity_target?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -251,8 +374,12 @@ export type MealPlan = Database['public']['Tables']['meal_plans']['Row'];
 export type PlannedMeal = Database['public']['Tables']['planned_meals']['Row'];
 export type Tag = Database['public']['Tables']['tags']['Row'];
 export type UserPreferences = Database['public']['Tables']['user_preferences']['Row'];
+export type FoodItem = Database['public']['Tables']['food_items']['Row'];
+export type RecipeIngredient = Database['public']['Tables']['recipe_ingredients']['Row'];
+export type HealthTargets = Database['public']['Tables']['health_targets']['Row'];
 
-export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'extra';
+export type FoodColor = 'red' | 'yellow' | 'green' | 'purple' | 'brown';
 
 export type NutritionValues = {
   calories: number;

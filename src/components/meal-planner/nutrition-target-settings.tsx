@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { UserPreferences } from "@/types/database";
+import type { HealthTargets, UserPreferences } from "@/types/database";
+import { DEFAULT_HEALTH_TARGETS, type HealthTargetValues } from "@/lib/health-metrics";
 import { Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -74,16 +75,50 @@ const toNutritionTargets = (
   ),
 });
 
+const toHealthTargetValues = (
+  healthTargets?: Partial<HealthTargets> | null,
+): HealthTargetValues => ({
+  plant_diversity_target: Number(
+    healthTargets?.plant_diversity_target ?? DEFAULT_HEALTH_TARGETS.plant_diversity_target,
+  ),
+  fermented_min: Number(
+    healthTargets?.fermented_min ?? DEFAULT_HEALTH_TARGETS.fermented_min,
+  ),
+  fermented_max: Number(
+    healthTargets?.fermented_max ?? DEFAULT_HEALTH_TARGETS.fermented_max,
+  ),
+  legume_min: Number(healthTargets?.legume_min ?? DEFAULT_HEALTH_TARGETS.legume_min),
+  legume_max: Number(healthTargets?.legume_max ?? DEFAULT_HEALTH_TARGETS.legume_max),
+  whole_grain_target_pct: Number(
+    healthTargets?.whole_grain_target_pct ?? DEFAULT_HEALTH_TARGETS.whole_grain_target_pct,
+  ),
+  added_sugar_max_meals: Number(
+    healthTargets?.added_sugar_max_meals ?? DEFAULT_HEALTH_TARGETS.added_sugar_max_meals,
+  ),
+  unprocessed_target_pct: Number(
+    healthTargets?.unprocessed_target_pct ?? DEFAULT_HEALTH_TARGETS.unprocessed_target_pct,
+  ),
+  color_diversity_target: Number(
+    healthTargets?.color_diversity_target ?? DEFAULT_HEALTH_TARGETS.color_diversity_target,
+  ),
+});
+
 interface NutritionTargetSettingsProps {
   onTargetsChange?: (targets: NutritionTargetSettings) => void;
+  onHealthTargetsChange?: (targets: HealthTargetValues) => void;
 }
 
 export function NutritionTargetSettings({
   onTargetsChange,
+  onHealthTargetsChange,
 }: NutritionTargetSettingsProps) {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [targetSettings, setTargetSettings] = useState<NutritionTargetSettings>(
     DEFAULT_NUTRITION_TARGETS,
+  );
+  const [healthTargetsRow, setHealthTargetsRow] = useState<HealthTargets | null>(null);
+  const [healthTargetSettings, setHealthTargetSettings] = useState<HealthTargetValues>(
+    toHealthTargetValues(),
   );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSavingTargets, setIsSavingTargets] = useState(false);
@@ -95,9 +130,19 @@ export function NutritionTargetSettings({
     [preferences],
   );
 
+  const activeHealthTargets = useMemo(
+    () =>
+      healthTargetsRow ? toHealthTargetValues(healthTargetsRow) : toHealthTargetValues(),
+    [healthTargetsRow],
+  );
+
   useEffect(() => {
     onTargetsChange?.(activeTargets);
   }, [activeTargets, onTargetsChange]);
+
+  useEffect(() => {
+    onHealthTargetsChange?.(activeHealthTargets);
+  }, [activeHealthTargets, onHealthTargetsChange]);
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -109,6 +154,8 @@ export function NutritionTargetSettings({
         if (!user) {
           setPreferences(null);
           setTargetSettings(DEFAULT_NUTRITION_TARGETS);
+          setHealthTargetsRow(null);
+          setHealthTargetSettings(toHealthTargetValues());
           return;
         }
 
@@ -125,14 +172,37 @@ export function NutritionTargetSettings({
           setPreferences(null);
           setTargetSettings(DEFAULT_NUTRITION_TARGETS);
         }
+
+        const { data: healthTargetsData } = await supabase
+          .from("health_targets")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (healthTargetsData) {
+          setHealthTargetsRow(healthTargetsData);
+          setHealthTargetSettings(toHealthTargetValues(healthTargetsData));
+        } else {
+          setHealthTargetsRow(null);
+          setHealthTargetSettings(toHealthTargetValues());
+        }
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load nutrition targets");
+        toast.error("Ernährungsziele konnten nicht geladen werden");
       }
     };
 
     loadPreferences();
   }, [supabase]);
+
+  const handleHealthTargetChange = (field: keyof HealthTargetValues, value: string) => {
+    const parsedValue = Number(value);
+
+    setHealthTargetSettings((prev) => ({
+      ...prev,
+      [field]: Number.isFinite(parsedValue) && parsedValue >= 0 ? parsedValue : 0,
+    }));
+  };
 
   const handleTargetToggle = (
     field: keyof NutritionTargetSettings,
@@ -166,7 +236,7 @@ export function NutritionTargetSettings({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error("You must be signed in to save targets");
+        toast.error("Du musst angemeldet sein, um Ziele zu speichern");
         return;
       }
 
@@ -190,12 +260,26 @@ export function NutritionTargetSettings({
 
       if (error) throw error;
 
+      const healthPayload = {
+        user_id: user.id,
+        ...healthTargetSettings,
+      };
+
+      const { data: healthData, error: healthError } = await supabase
+        .from("health_targets")
+        .upsert(healthPayload, { onConflict: "user_id" })
+        .select("*")
+        .single();
+
+      if (healthError) throw healthError;
+
       setPreferences(data);
+      setHealthTargetsRow(healthData);
       setIsSettingsOpen(false);
-      toast.success("Nutrition targets saved");
+      toast.success("Ziele gespeichert");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save nutrition targets");
+      toast.error("Ernährungsziele konnten nicht gespeichert werden");
     } finally {
       setIsSavingTargets(false);
     }
@@ -204,23 +288,23 @@ export function NutritionTargetSettings({
   return (
     <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" className="text-brand-accent-dark">
           <Settings2 className="mr-1.5 h-4 w-4" />
-          Targets
+          Ziele
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Daily Nutrition Targets</DialogTitle>
+          <DialogTitle>Ziele</DialogTitle>
           <DialogDescription>
-            Set your daily goals and choose which targets should be active.
+            Lege deine täglichen Ernährungsziele und wöchentlichen Health-Card-Ziele fest.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-3">
           <div className="grid grid-cols-[1fr_auto] items-center gap-3">
             <div className="space-y-1">
-              <Label htmlFor="calories-target">Calories</Label>
+              <Label htmlFor="calories-target">Kalorien</Label>
               <Input
                 id="calories-target"
                 type="number"
@@ -243,7 +327,7 @@ export function NutritionTargetSettings({
                   )
                 }
               />
-              <Label htmlFor="calories-enabled">Active</Label>
+              <Label htmlFor="calories-enabled">Aktiv</Label>
             </div>
           </div>
 
@@ -269,13 +353,13 @@ export function NutritionTargetSettings({
                   handleTargetToggle("protein_target_enabled", checked === true)
                 }
               />
-              <Label htmlFor="protein-enabled">Active</Label>
+              <Label htmlFor="protein-enabled">Aktiv</Label>
             </div>
           </div>
 
           <div className="grid grid-cols-[1fr_auto] items-center gap-3">
             <div className="space-y-1">
-              <Label htmlFor="carbs-target">Carbs (g)</Label>
+              <Label htmlFor="carbs-target">Kohlenhydrate (g)</Label>
               <Input
                 id="carbs-target"
                 type="number"
@@ -295,13 +379,13 @@ export function NutritionTargetSettings({
                   handleTargetToggle("carbs_target_enabled", checked === true)
                 }
               />
-              <Label htmlFor="carbs-enabled">Active</Label>
+              <Label htmlFor="carbs-enabled">Aktiv</Label>
             </div>
           </div>
 
           <div className="grid grid-cols-[1fr_auto] items-center gap-3">
             <div className="space-y-1">
-              <Label htmlFor="fats-target">Fats (g)</Label>
+              <Label htmlFor="fats-target">Fett (g)</Label>
               <Input
                 id="fats-target"
                 type="number"
@@ -321,17 +405,140 @@ export function NutritionTargetSettings({
                   handleTargetToggle("fats_target_enabled", checked === true)
                 }
               />
-              <Label htmlFor="fats-enabled">Active</Label>
+              <Label htmlFor="fats-enabled">Aktiv</Label>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3 border-t border-brand-card-border pt-4">
+          <div>
+            <h3 className="text-sm font-medium">Wöchentliche Health-Ziele</h3>
+            <p className="text-xs text-brand-tertiary">
+              Ziele für die Health-Card-Kennzahlen, basierend auf den für diese Woche geplanten Mahlzeiten.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="plant-diversity-target">Pflanzenvielfalt (einzigartig)</Label>
+              <Input
+                id="plant-diversity-target"
+                type="number"
+                min="0"
+                value={healthTargetSettings.plant_diversity_target}
+                onChange={(e) =>
+                  handleHealthTargetChange("plant_diversity_target", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="color-diversity-target">Farbvielfalt (Farben)</Label>
+              <Input
+                id="color-diversity-target"
+                type="number"
+                min="0"
+                max="5"
+                value={healthTargetSettings.color_diversity_target}
+                onChange={(e) =>
+                  handleHealthTargetChange("color_diversity_target", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="fermented-min">Fermentiert min (Mahlzeiten/Woche)</Label>
+              <Input
+                id="fermented-min"
+                type="number"
+                min="0"
+                value={healthTargetSettings.fermented_min}
+                onChange={(e) => handleHealthTargetChange("fermented_min", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="fermented-max">Fermentiert max (Mahlzeiten/Woche)</Label>
+              <Input
+                id="fermented-max"
+                type="number"
+                min="0"
+                value={healthTargetSettings.fermented_max}
+                onChange={(e) => handleHealthTargetChange("fermented_max", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="legume-min">Hülsenfrüchte min (Mahlzeiten/Woche)</Label>
+              <Input
+                id="legume-min"
+                type="number"
+                min="0"
+                value={healthTargetSettings.legume_min}
+                onChange={(e) => handleHealthTargetChange("legume_min", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="legume-max">Hülsenfrüchte max (Mahlzeiten/Woche)</Label>
+              <Input
+                id="legume-max"
+                type="number"
+                min="0"
+                value={healthTargetSettings.legume_max}
+                onChange={(e) => handleHealthTargetChange("legume_max", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="whole-grain-target">Vollkorn-Ziel (%)</Label>
+              <Input
+                id="whole-grain-target"
+                type="number"
+                min="0"
+                max="100"
+                value={healthTargetSettings.whole_grain_target_pct}
+                onChange={(e) =>
+                  handleHealthTargetChange("whole_grain_target_pct", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="unprocessed-target">Unverarbeitet-Ziel (%)</Label>
+              <Input
+                id="unprocessed-target"
+                type="number"
+                min="0"
+                max="100"
+                value={healthTargetSettings.unprocessed_target_pct}
+                onChange={(e) =>
+                  handleHealthTargetChange("unprocessed_target_pct", e.target.value)
+                }
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="added-sugar-max">Zugesetzter Zucker max (Mahlzeiten/Woche)</Label>
+              <Input
+                id="added-sugar-max"
+                type="number"
+                min="0"
+                value={healthTargetSettings.added_sugar_max_meals}
+                onChange={(e) =>
+                  handleHealthTargetChange("added_sugar_max_meals", e.target.value)
+                }
+              />
             </div>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsSettingsOpen(false)}>
-            Cancel
+            Abbrechen
           </Button>
           <Button onClick={handleSaveTargets} disabled={isSavingTargets}>
-            {isSavingTargets ? "Saving..." : "Save Targets"}
+            {isSavingTargets ? "Wird gespeichert..." : "Ziele speichern"}
           </Button>
         </DialogFooter>
       </DialogContent>

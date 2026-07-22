@@ -11,6 +11,11 @@ import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog
 import type { Recipe } from '@/types/database';
 import { Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import {
+  RecipeIngredientEditor,
+  createEmptyIngredientRow,
+  type IngredientRow,
+} from './recipe-ingredient-editor';
 
 interface RecipeFormProps {
   onRecipeSaved: () => void;
@@ -52,6 +57,17 @@ const parseTags = (tagsInput: string): string[] => {
     });
 };
 
+const rowsToLegacyIngredientsText = (rows: IngredientRow[]): string =>
+  rows
+    .filter((row) => row.foodItemId)
+    .map((row) => {
+      const parts = [row.quantity.trim(), row.unit.trim(), row.foodItemName].filter(
+        (part) => part.length > 0,
+      );
+      return parts.join(' ');
+    })
+    .join('\n');
+
 const getFormDataFromRecipe = (recipe?: Recipe | null): RecipeFormData => ({
   name: recipe?.name || '',
   ingredients: recipe?.ingredients || '',
@@ -73,11 +89,17 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(recipe?.image_url || null);
   const [removeImage, setRemoveImage] = useState(false);
+  const [ingredientRows, setIngredientRows] = useState<IngredientRow[]>([
+    createEmptyIngredientRow(),
+  ]);
+  const [recipeHadStructuredIngredientsOnLoad, setRecipeHadStructuredIngredientsOnLoad] =
+    useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const previewObjectUrlRef = useRef<string | null>(null);
 
   const supabase = createClient();
   const isEditing = Boolean(recipe);
+  const showLegacyIngredientsField = isEditing && !recipeHadStructuredIngredientsOnLoad;
 
   const clearPreviewObjectUrl = () => {
     if (!previewObjectUrlRef.current) {
@@ -107,6 +129,42 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
   }, []);
 
   useEffect(() => {
+    const loadRecipeIngredients = async () => {
+      if (!recipe) {
+        setIngredientRows([createEmptyIngredientRow()]);
+        setRecipeHadStructuredIngredientsOnLoad(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('recipe_ingredients')
+        .select('id, food_item_id, quantity, unit, display_order, food_items(name)')
+        .eq('recipe_id', recipe.id)
+        .order('display_order', { ascending: true });
+
+      if (error) {
+        toast.error('Rezeptzutaten konnten nicht geladen werden');
+        return;
+      }
+
+      const loadedRows: IngredientRow[] = (data ?? []).map((entry: any) => ({
+        rowId: entry.id as string,
+        foodItemId: entry.food_item_id as string,
+        foodItemName: Array.isArray(entry.food_items)
+          ? ((entry.food_items[0]?.name as string | undefined) ?? '')
+          : ((entry.food_items?.name as string | undefined) ?? ''),
+        quantity: String(entry.quantity ?? 1),
+        unit: (entry.unit as string | null) ?? '',
+      }));
+
+      setRecipeHadStructuredIngredientsOnLoad(loadedRows.length > 0);
+      setIngredientRows(loadedRows.length > 0 ? loadedRows : [createEmptyIngredientRow()]);
+    };
+
+    loadRecipeIngredients();
+  }, [recipe]);
+
+  useEffect(() => {
     const loadRecipeTags = async () => {
       if (!recipe) {
         setFormData((prev) => ({ ...prev, tags: '' }));
@@ -119,7 +177,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
         .eq('recipe_id', recipe.id);
 
       if (error) {
-        toast.error('Failed to load recipe tags');
+        toast.error('Rezept-Tags konnten nicht geladen werden');
         return;
       }
 
@@ -151,13 +209,13 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
+      toast.error('Bitte wähle eine gültige Bilddatei aus');
       e.target.value = '';
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      toast.error('Image must be 5MB or smaller');
+      toast.error('Das Bild darf höchstens 5 MB groß sein');
       e.target.value = '';
       return;
     }
@@ -271,8 +329,47 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
     }
   };
 
+  const syncRecipeIngredients = async (recipeId: string, rows: IngredientRow[]) => {
+    const validRows = rows.filter((row) => row.foodItemId);
+
+    const { error: deleteError } = await supabase
+      .from('recipe_ingredients')
+      .delete()
+      .eq('recipe_id', recipeId);
+
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    if (validRows.length === 0) {
+      return;
+    }
+
+    const { error: insertError } = await supabase.from('recipe_ingredients').insert(
+      validRows.map((row, index) => ({
+        recipe_id: recipeId,
+        food_item_id: row.foodItemId,
+        quantity: parseFloat(row.quantity) || 1,
+        unit: row.unit.trim() || null,
+        display_order: index,
+      })) as never,
+    );
+
+    if (insertError) {
+      throw insertError;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validIngredientRows = ingredientRows.filter((row) => row.foodItemId);
+
+    if (!showLegacyIngredientsField && validIngredientRows.length === 0) {
+      toast.error('Füge mindestens eine Zutat hinzu');
+      return;
+    }
+
     setLoading(true);
 
     let uploadedImagePath: string | null = null;
@@ -283,7 +380,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error('You must be logged in to save a recipe');
+        toast.error('Du musst angemeldet sein, um ein Rezept zu speichern');
         return;
       }
 
@@ -301,7 +398,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
           });
 
         if (uploadError) {
-          toast.error(uploadError.message || 'Failed to upload recipe image');
+          toast.error(uploadError.message || 'Rezeptbild konnte nicht hochgeladen werden');
           return;
         }
 
@@ -320,7 +417,10 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
 
       const recipePayload = {
         name: formData.name,
-        ingredients: formData.ingredients,
+        ingredients:
+          validIngredientRows.length > 0
+            ? rowsToLegacyIngredientsText(validIngredientRows)
+            : formData.ingredients,
         preparation_steps: formData.preparation_steps.trim() || null,
         source_url: formData.source_url.trim() || null,
         prep_time: formData.prep_time.trim() || null,
@@ -367,7 +467,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
       }
 
       if (!savedRecipeId) {
-        toast.error('Failed to save recipe');
+        toast.error('Rezept konnte nicht gespeichert werden');
         return;
       }
 
@@ -377,9 +477,10 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
 
       try {
         await syncRecipeTags(savedRecipeId, user.id, formData.tags);
-        toast.success(isEditing ? 'Recipe updated successfully!' : 'Recipe created successfully!');
+        await syncRecipeIngredients(savedRecipeId, ingredientRows);
+        toast.success(isEditing ? 'Rezept erfolgreich aktualisiert!' : 'Rezept erfolgreich erstellt!');
       } catch (tagError) {
-        toast.error('Recipe saved, but failed to update tags');
+        toast.error('Rezept gespeichert, aber Tags oder Zutaten konnten nicht aktualisiert werden');
       }
 
       onRecipeSaved();
@@ -388,21 +489,21 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
         await supabase.storage.from(RECIPE_IMAGE_BUCKET).remove([uploadedImagePath]);
       }
 
-      toast.error(isEditing ? 'Failed to update recipe' : 'Failed to create recipe');
+      toast.error(isEditing ? 'Rezept konnte nicht aktualisiert werden' : 'Rezept konnte nicht erstellt werden');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <DialogContent className="max-h-[90vh] overflow-y-auto">
+    <DialogContent className="sm:max-h-[90vh]">
       <DialogHeader>
-        <DialogTitle>{isEditing ? 'Edit Recipe' : 'Create New Recipe'}</DialogTitle>
+        <DialogTitle>{isEditing ? 'Rezept bearbeiten' : 'Neues Rezept erstellen'}</DialogTitle>
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className='space-y-2'>
-          <Label htmlFor="name">Recipe Name *</Label>
+          <Label htmlFor="name">Rezeptname *</Label>
           <Input
             id="name"
             required
@@ -410,13 +511,13 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             onChange={(e) =>
               setFormData({ ...formData, name: e.target.value })
             }
-            placeholder="e.g., Grilled Chicken with Vegetables"
+            placeholder="z. B. Gegrilltes Hähnchen mit Gemüse"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className='space-y-2'>
-            <Label htmlFor="source_url">Recipe URL</Label>
+            <Label htmlFor="source_url">Rezept-URL</Label>
             <Input
               id="source_url"
               type="url"
@@ -429,14 +530,14 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor="prep_time">Time</Label>
+            <Label htmlFor="prep_time">Zeit</Label>
             <Input
               id="prep_time"
               value={formData.prep_time}
               onChange={(e) =>
                 setFormData({ ...formData, prep_time: e.target.value })
               }
-              placeholder="e.g., 30 min"
+              placeholder="z. B. 30 Min."
             />
           </div>
         </div>
@@ -449,13 +550,13 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             onChange={(e) =>
               setFormData({ ...formData, tags: e.target.value })
             }
-            placeholder="e.g., high protein, lunch"
+            placeholder="z. B. proteinreich, Mittagessen"
           />
         </div>
 
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="image">Recipe Image</Label>
+            <Label htmlFor="image">Rezeptbild</Label>
 
             <div className="flex items-center gap-2">
               {selectedImage && (
@@ -466,7 +567,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
                   onClick={handleClearSelectedImage}
                   disabled={loading}
                 >
-                  Clear selection
+                  Auswahl aufheben
                 </Button>
               )}
 
@@ -479,23 +580,23 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
                   disabled={loading}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Remove image
+                  Bild entfernen
                 </Button>
               )}
             </div>
           </div>
 
           {imagePreviewUrl ? (
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+            <div className="overflow-hidden rounded-xl border border-brand-card-border bg-brand-chip-neutral">
               <img
                 src={imagePreviewUrl}
-                alt="Recipe preview"
+                alt="Rezeptvorschau"
                 className="h-48 w-full object-cover"
               />
             </div>
           ) : (
-            <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-500">
-              No image selected
+            <div className="flex h-40 items-center justify-center rounded-xl border border-dashed border-brand-disabled bg-brand-app-bg text-sm text-brand-tertiary">
+              Kein Bild ausgewählt
             </div>
           )}
 
@@ -508,41 +609,50 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             disabled={loading}
           />
 
-          <p className="text-xs text-gray-500">
-            Upload a JPG, PNG, GIF, or WEBP image up to 5MB.
+          <p className="text-xs text-brand-tertiary">
+            Lade ein JPG-, PNG-, GIF- oder WEBP-Bild mit bis zu 5 MB hoch.
           </p>
         </div>
 
-        <div className='space-y-2' >
-          <Label htmlFor="ingredients">Ingredients *</Label>
-          <Textarea
-            id="ingredients"
-            required
-            value={formData.ingredients}
-            onChange={(e) =>
-              setFormData({ ...formData, ingredients: e.target.value })
-            }
-            placeholder="List ingredients (one per line):&#10;- 500g chicken breast&#10;- 2 cups broccoli&#10;- 3 tbsp olive oil"
-            className="h-24"
-          />
+        {showLegacyIngredientsField && (
+          <div className='space-y-2' >
+            <Label htmlFor="ingredients">Alte Zutatenliste</Label>
+            <Textarea
+              id="ingredients"
+              value={formData.ingredients}
+              onChange={(e) =>
+                setFormData({ ...formData, ingredients: e.target.value })
+              }
+              placeholder="Zutaten auflisten (eine pro Zeile):&#10;- 500g Hähnchenbrust&#10;- 2 Tassen Brokkoli&#10;- 3 EL Olivenöl"
+              className="h-24"
+            />
+            <p className="text-xs text-brand-tertiary">
+              Wird noch von der Einkaufsliste verwendet, bis du dieses Rezept unten mit der Lebensmitteldatenbank neu aufbaust.
+            </p>
+          </div>
+        )}
+
+        <div className='space-y-2'>
+          <Label>Zutaten {showLegacyIngredientsField ? '(Lebensmitteldatenbank)' : '*'}</Label>
+          <RecipeIngredientEditor rows={ingredientRows} onChange={setIngredientRows} />
         </div>
 
         <div className='space-y-2'>
-          <Label htmlFor="preparation_steps">Preparation Steps</Label>
+          <Label htmlFor="preparation_steps">Zubereitungsschritte</Label>
           <Textarea
             id="preparation_steps"
             value={formData.preparation_steps}
             onChange={(e) =>
               setFormData({ ...formData, preparation_steps: e.target.value })
             }
-            placeholder="Steps to prepare the recipe (one per line):&#10;1. Preheat oven to 200°C&#10;2. Season chicken with salt and pepper"
+            placeholder="Schritte zur Zubereitung (einer pro Zeile):&#10;1. Ofen auf 200°C vorheizen&#10;2. Hähnchen mit Salz und Pfeffer würzen"
             className="h-24"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className='space-y-2'>
-            <Label htmlFor="serving_size">Serving Size</Label>
+            <Label htmlFor="serving_size">Portionsgröße</Label>
             <Input
               id="serving_size"
               type="number"
@@ -555,7 +665,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor="calories">Calories (per serving)</Label>
+            <Label htmlFor="calories">Kalorien (pro Portion)</Label>
             <Input
               id="calories"
               type="number"
@@ -582,7 +692,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             />
           </div>
           <div className='space-y-2'>
-            <Label htmlFor="carbs">Carbs (g)</Label>
+            <Label htmlFor="carbs">Kohlenhydrate (g)</Label>
             <Input
               id="carbs"
               type="number"
@@ -594,7 +704,7 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             />
           </div>
           <div className='space-y-2'  >
-            <Label htmlFor="fats">Fats (g)</Label>
+            <Label htmlFor="fats">Fett (g)</Label>
             <Input
               id="fats"
               type="number"
@@ -618,12 +728,12 @@ export function RecipeForm({ onRecipeSaved, recipe }: RecipeFormProps) {
             className="w-4 h-4"
           />
           <label htmlFor="is_public" className="ml-2 text-sm">
-            Make this recipe public
+            Dieses Rezept öffentlich machen
           </label>
         </div>
 
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? (isEditing ? 'Saving...' : 'Creating...') : (isEditing ? 'Save Changes' : 'Create Recipe')}
+          {loading ? (isEditing ? 'Wird gespeichert...' : 'Wird erstellt...') : (isEditing ? 'Änderungen speichern' : 'Rezept erstellen')}
         </Button>
       </form>
     </DialogContent>

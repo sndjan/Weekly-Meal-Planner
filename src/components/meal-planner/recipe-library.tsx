@@ -7,7 +7,6 @@ import {
   RECIPE_IMAGE_BUCKET,
 } from "../../lib/recipe-images";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import type { Recipe } from "@/types/database";
 import { Download, Plus, Upload } from "lucide-react";
 import toast from "react-hot-toast";
@@ -106,7 +105,7 @@ const normalizeImportedRecipe = (
   if (!rawRecipe || typeof rawRecipe !== "object") {
     return {
       recipe: null,
-      error: `Recipe #${index + 1} is not a valid object`,
+      error: `Rezept #${index + 1} ist kein gültiges Objekt`,
     };
   }
 
@@ -119,14 +118,14 @@ const normalizeImportedRecipe = (
   if (!name) {
     return {
       recipe: null,
-      error: `Recipe #${index + 1} is missing a valid name`,
+      error: `Rezept #${index + 1} hat keinen gültigen Namen`,
     };
   }
 
   if (!ingredients) {
     return {
       recipe: null,
-      error: `Recipe #${index + 1} is missing ingredients`,
+      error: `Rezept #${index + 1} hat keine Zutaten`,
     };
   }
 
@@ -291,7 +290,7 @@ export function RecipeLibrary({
 
       setRecipeTagsById(nextRecipeTagsById);
     } catch (err) {
-      toast.error("Failed to load recipes");
+      toast.error("Rezepte konnten nicht geladen werden");
     } finally {
       setLoading(false);
     }
@@ -322,7 +321,7 @@ export function RecipeLibrary({
     document.body.removeChild(link);
     URL.revokeObjectURL(fileUrl);
 
-    toast.success("Template downloaded");
+    toast.success("Vorlage heruntergeladen");
   };
 
   const handleJsonImport = async (
@@ -336,7 +335,7 @@ export function RecipeLibrary({
     }
 
     if (!jsonFile.name.toLowerCase().endsWith(".json")) {
-      toast.error("Please select a JSON file");
+      toast.error("Bitte wähle eine JSON-Datei aus");
       return;
     }
 
@@ -348,7 +347,7 @@ export function RecipeLibrary({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error("You must be logged in to import recipes");
+        toast.error("Du musst angemeldet sein, um Rezepte zu importieren");
         return;
       }
 
@@ -365,7 +364,7 @@ export function RecipeLibrary({
 
       if (!rawRecipes || rawRecipes.length === 0) {
         toast.error(
-          "Invalid import file. Use an array of recipes or an object with a recipes array.",
+          "Ungültige Importdatei. Verwende ein Array von Rezepten oder ein Objekt mit einem recipes-Array.",
         );
         return;
       }
@@ -387,7 +386,7 @@ export function RecipeLibrary({
       });
 
       if (normalizedRecipes.length === 0) {
-        toast.error(validationErrors[0] || "No valid recipes found in JSON");
+        toast.error(validationErrors[0] || "Keine gültigen Rezepte in der JSON-Datei gefunden");
         return;
       }
 
@@ -514,13 +513,13 @@ export function RecipeLibrary({
 
       if (importedCount > 0) {
         toast.success(
-          `Imported ${importedCount} recipe${importedCount === 1 ? "" : "s"}`,
+          `${importedCount} Rezept${importedCount === 1 ? "" : "e"} importiert`,
         );
       }
 
       if (failedCount > 0) {
         toast.error(
-          `${failedCount} recipe${failedCount === 1 ? "" : "s"} failed to import`,
+          `${failedCount} Rezept${failedCount === 1 ? "" : "e"} konnte${failedCount === 1 ? "" : "n"} nicht importiert werden`,
         );
       }
 
@@ -528,7 +527,7 @@ export function RecipeLibrary({
         toast.error(validationErrors[0]);
       }
     } catch (error) {
-      toast.error("Failed to import recipes from JSON");
+      toast.error("Rezepte konnten nicht aus JSON importiert werden");
     } finally {
       setIsImporting(false);
     }
@@ -558,66 +557,63 @@ export function RecipeLibrary({
         return nextTagsById;
       });
 
-      toast.success("Recipe deleted");
+      toast.success("Rezept gelöscht");
     } catch (err) {
-      toast.error("Failed to delete recipe");
+      toast.error("Rezept konnte nicht gelöscht werden");
     }
   };
 
+  const toolbarActions = (
+    <>
+      <input
+        ref={importFileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleJsonImport}
+      />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={handleDownloadTemplate}
+        aria-label="Rezept-Importvorlage herunterladen"
+        title="Rezept-Importvorlage herunterladen"
+      >
+        <Download className="h-4 w-4" />
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={handleImportButtonClick}
+        disabled={isImporting}
+        aria-label="Rezepte aus JSON importieren"
+        title="Rezepte aus JSON importieren"
+      >
+        <Upload className="h-4 w-4" />
+      </Button>
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={onNewRecipe}
+        aria-label="Neues Rezept hinzufügen"
+        title="Neues Rezept hinzufügen"
+      >
+        <Plus className="h-4 w-4" />
+      </Button>
+    </>
+  );
+
   return (
-    <Card>
-      <div className="flex items-center justify-between px-4">
-        <CardTitle className="text-lg">Recipe Library</CardTitle>
-        <div className="flex items-center gap-2">
-          <input
-            ref={importFileInputRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={handleJsonImport}
-          />
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={handleDownloadTemplate}
-            aria-label="Download recipe import template"
-            title="Download recipe import template"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={handleImportButtonClick}
-            disabled={isImporting}
-            aria-label="Import recipes from JSON"
-            title="Import recipes from JSON"
-          >
-            <Upload className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={onNewRecipe}
-            aria-label="Add new recipe"
-            title="Add new recipe"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <CardContent>
-        <RecipeList
-          recipes={recipes}
-          recipeTagsById={recipeTagsById}
-          loading={loading}
-          onRecipeEdit={onRecipeEdit}
-          onRecipeDelete={handleDelete}
-          onRecipeSelect={onRecipeSelect}
-        />
-      </CardContent>
-    </Card>
+    <RecipeList
+      recipes={recipes}
+      recipeTagsById={recipeTagsById}
+      loading={loading}
+      onRecipeEdit={onRecipeEdit}
+      onRecipeDelete={handleDelete}
+      onRecipeSelect={onRecipeSelect}
+      toolbarActions={toolbarActions}
+    />
   );
 }

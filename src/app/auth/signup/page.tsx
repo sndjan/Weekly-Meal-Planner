@@ -31,11 +31,11 @@ export default function SignUp() {
         toast.error(error.message);
       } else if (data?.user) {
         // User record is automatically created by the database trigger on auth.users
-        toast.success('Sign up successful! Please check your email.');
+        toast.success('Registrierung erfolgreich! Bitte überprüfe deine E-Mails.');
         router.push('/auth/signin');
       }
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Ein Fehler ist aufgetreten');
     } finally {
       setLoading(false);
     }
@@ -45,24 +45,24 @@ export default function SignUp() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create Account</CardTitle>
-          <CardDescription>Sign up to start planning your meals</CardDescription>
+          <CardTitle>Konto erstellen</CardTitle>
+          <CardDescription>Registriere dich, um deine Mahlzeiten zu planen</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignUp} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-Mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="du@beispiel.de"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Passwort</Label>
               <Input
                 id="password"
                 type="password"
@@ -73,13 +73,13 @@ export default function SignUp() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign Up'}
+              {loading ? 'Konto wird erstellt...' : 'Registrieren'}
             </Button>
           </form>
           <p className="text-center text-sm text-gray-600 mt-4">
-            Already have an account?{' '}
+            Bereits ein Konto?{' '}
             <Link href="/auth/signin" className="text-primary hover:underline">
-              Sign in
+              Anmelden
             </Link>
           </p>
         </CardContent>

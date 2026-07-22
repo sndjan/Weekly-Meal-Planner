@@ -17,18 +17,18 @@ export default async function Home() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
       <div className="text-center max-w-md">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          Weekly Meal Planner
+          Wochen-Essensplaner
         </h1>
         <p className="text-gray-600 mb-8 text-lg">
-          Plan your meals for the week and automatically generate shopping lists
+          Plane deine Mahlzeiten für die Woche und erstelle automatisch Einkaufslisten
         </p>
         <div className="space-y-4">
           <Link href="/auth/signup">
-            <Button className="w-full">Get Started</Button>
+            <Button className="w-full">Loslegen</Button>
           </Link>
           <Link href="/auth/signin">
             <Button variant="outline" className="w-full">
-              Sign In
+              Anmelden
             </Button>
           </Link>
         </div>

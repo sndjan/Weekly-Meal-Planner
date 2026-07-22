@@ -1,4 +1,4 @@
-import type { PlannedMeal, Recipe, ShoppingListItem } from '@/types/database';
+import type { FoodItem, PlannedMeal, Recipe, RecipeIngredient, ShoppingListItem } from '@/types/database';
 
 type Conversion = {
   group: 'weight' | 'volume';
@@ -347,11 +347,20 @@ export function generateShoppingListFromRecipes(
 }
 
 /**
- * Generate shopping list from current planned meals and recipes
+ * Generate shopping list from current planned meals and recipes.
+ *
+ * Recipes with structured ingredients (recipe_ingredients rows linked to the food
+ * database) use those directly; recipes that haven't been migrated yet fall back to
+ * parsing their legacy free-text `ingredients` field.
  */
 export function generateShoppingListFromPlannedMeals(
   plannedMeals: Array<Pick<PlannedMeal, 'recipe_id' | 'serving_size'>>,
-  recipes: Array<Pick<Recipe, 'id' | 'ingredients' | 'serving_size'>>
+  recipes: Array<Pick<Recipe, 'id' | 'ingredients' | 'serving_size'>>,
+  recipeIngredientsByRecipeId: Record<
+    string,
+    Array<Pick<RecipeIngredient, 'food_item_id' | 'quantity' | 'unit'>>
+  > = {},
+  foodItemsById: Record<string, Pick<FoodItem, 'id' | 'name'>> = {},
 ): ShoppingListItem[] {
   if (plannedMeals.length === 0 || recipes.length === 0) {
     return [];
@@ -374,7 +383,24 @@ export function generateShoppingListFromPlannedMeals(
       : 1;
 
     const multiplier = plannedServings / recipeServings;
-    items.push(...parseIngredientLines(recipe.ingredients, multiplier));
+    const structuredIngredients = recipeIngredientsByRecipeId[recipe.id];
+
+    if (structuredIngredients && structuredIngredients.length > 0) {
+      for (const ingredient of structuredIngredients) {
+        const foodItem = foodItemsById[ingredient.food_item_id];
+        if (!foodItem) {
+          continue;
+        }
+
+        items.push({
+          ingredient: foodItem.name,
+          quantity: roundQuantity(ingredient.quantity * multiplier),
+          unit: ingredient.unit ?? '',
+        });
+      }
+    } else {
+      items.push(...parseIngredientLines(recipe.ingredients, multiplier));
+    }
   }
 
   return mergeShoppingList(items);
@@ -404,7 +430,7 @@ export function formatShoppingList(items: ShoppingListItem[]): string {
  * Reference: https://sites.google.com/getbring.com/bring-import-dev-guide/web-to-app-integration
  */
 export function generateBringAppLink(items: ShoppingListItem[]): string {
-  const listNameEncoded = encodeURIComponent('Weekly Meal Planner');
+  const listNameEncoded = encodeURIComponent('Wochen-Essensplaner');
 
   const itemsParams = items
     .map((item) => {

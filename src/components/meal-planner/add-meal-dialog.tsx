@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import type { Recipe, MealType } from "@/types/database";
+import { MEAL_TYPE_LABELS } from "@/lib/meal-labels";
 import toast from "react-hot-toast";
 import { RecipeList } from "./recipe-list";
 
@@ -21,22 +22,24 @@ interface AddMealDialogProps {
   dayOfWeek: number;
   mealType: MealType;
   onMealAdded: () => void;
+  label?: string;
 }
 
 const WEEK_DAYS: Record<number, string> = {
-  0: "Monday",
-  1: "Tuesday",
-  2: "Wednesday",
-  3: "Thursday",
-  4: "Friday",
-  5: "Saturday",
-  6: "Sunday",
+  0: "Montag",
+  1: "Dienstag",
+  2: "Mittwoch",
+  3: "Donnerstag",
+  4: "Freitag",
+  5: "Samstag",
+  6: "Sonntag",
 };
 
 export function AddMealDialog({
   dayOfWeek,
   mealType,
   onMealAdded,
+  label = MEAL_TYPE_LABELS[mealType],
 }: AddMealDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -115,7 +118,7 @@ export function AddMealDialog({
 
           setRecipeTagsById(nextRecipeTagsById);
         } catch (err) {
-          toast.error("Failed to load recipes");
+          toast.error("Rezepte konnten nicht geladen werden");
         } finally {
           setLoadingRecipes(false);
         }
@@ -127,7 +130,7 @@ export function AddMealDialog({
 
   const handleAddMeal = async () => {
     if (!selectedRecipe) {
-      toast.error("Please select a recipe");
+      toast.error("Bitte wähle ein Rezept aus");
       return;
     }
 
@@ -139,7 +142,7 @@ export function AddMealDialog({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        toast.error("You must be logged in");
+        toast.error("Du musst angemeldet sein");
         return;
       }
 
@@ -177,7 +180,7 @@ export function AddMealDialog({
       }
 
       if (!mealPlanId) {
-        toast.error("Failed to create meal plan");
+        toast.error("Essensplan konnte nicht erstellt werden");
         return;
       }
 
@@ -196,13 +199,13 @@ export function AddMealDialog({
 
       if (insertError) throw insertError;
 
-      toast.success("Meal added successfully!");
+      toast.success("Mahlzeit erfolgreich hinzugefügt!");
       setIsOpen(false);
       setSelectedRecipe("");
       setServingSize("1");
       onMealAdded();
     } catch (err) {
-      toast.error("Failed to add meal");
+      toast.error("Mahlzeit konnte nicht hinzugefügt werden");
       console.error(err);
     } finally {
       setLoading(false);
@@ -212,14 +215,18 @@ export function AddMealDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="w-full">
-          <Plus className="h-4 w-4 mr-1" />
-        </Button>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-xl border border-dashed border-brand-disabled px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-brand-muted transition-colors hover:border-brand-secondary hover:text-brand-secondary"
+        >
+          {label}
+          <Plus className="h-4 w-4 text-brand-icon-muted" />
+        </button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            Add {mealType} for {WEEK_DAYS[dayOfWeek] ?? dayOfWeek}
+            {MEAL_TYPE_LABELS[mealType]} hinzufügen für {WEEK_DAYS[dayOfWeek] ?? dayOfWeek}
           </DialogTitle>
         </DialogHeader>
 
@@ -239,7 +246,7 @@ export function AddMealDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="serving-size">Serving Size</Label>
+            <Label htmlFor="serving-size">Portionsgröße</Label>
             <Input
               id="serving-size"
               type="number"
@@ -255,7 +262,7 @@ export function AddMealDialog({
             disabled={loading || !selectedRecipe}
             className="w-full"
           >
-            {loading ? "Adding..." : "Add Selected Recipe"}
+            {loading ? "Wird hinzugefügt..." : "Ausgewähltes Rezept hinzufügen"}
           </Button>
         </div>
       </DialogContent>

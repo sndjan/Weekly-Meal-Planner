@@ -30,14 +30,14 @@ export default function SignIn() {
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success('Signed in successfully!');
+        toast.success('Erfolgreich angemeldet!');
         console.log("User signed in:", email);
         // Wait a moment for session to be stored before redirecting
         await new Promise(resolve => setTimeout(resolve, 500));
         router.push('/meal-planner');
       }
     } catch (err) {
-      toast.error('An error occurred');
+      toast.error('Ein Fehler ist aufgetreten');
     } finally {
       setLoading(false);
     }
@@ -47,24 +47,24 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>Welcome back to Weekly Meal Planner</CardDescription>
+          <CardTitle>Anmelden</CardTitle>
+          <CardDescription>Willkommen zurück beim Wochen-Essensplaner</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">E-Mail</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder="du@beispiel.de"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Passwort</Label>
               <Input
                 id="password"
                 type="password"
@@ -75,13 +75,13 @@ export default function SignIn() {
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Anmeldung läuft...' : 'Anmelden'}
             </Button>
           </form>
           <p className="text-center text-sm text-gray-600 mt-4">
-            Don't have an account?{' '}
+            Noch kein Konto?{' '}
             <Link href="/auth/signup" className="text-primary hover:underline">
-              Sign up
+              Registrieren
             </Link>
           </p>
         </CardContent>
