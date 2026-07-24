@@ -89,11 +89,12 @@ export function MealPlannerMain() {
   );
 
   return (
-    <div className="min-h-screen bg-brand-app-bg pb-16 lg:pb-0">
+    <div className="min-h-screen bg-brand-app-bg pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
       <header className="sticky top-0 z-40 border-b border-brand-card-border bg-white">
         <div className="flex items-center justify-between px-4 py-4">
           <h1 className="font-heading text-2xl font-extrabold text-brand-ink">
-            Wochen-Essensplaner
+            <span className="sm:hidden">WMP</span>
+            <span className="hidden sm:inline">Wochen-Essensplaner</span>
           </h1>
           <div className="flex items-center gap-2">
             <FoodDatabase />

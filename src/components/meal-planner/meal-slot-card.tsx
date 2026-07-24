@@ -36,8 +36,8 @@ export function MealSlotCard({
       <p className="pr-5 text-sm font-semibold text-brand-ink">{recipe.name}</p>
       <div className="mt-1.5 flex flex-wrap gap-2 text-xs text-brand-secondary">
         {Boolean(recipe.calories) && nutritionTargets.calories_target_enabled && (
-          <span className="inline-flex items-center gap-1 text-brand-accent">
-            <Flame className="h-3.5 w-3.5 text-brand-accent" />
+          <span className="inline-flex items-center gap-1 text-brand-accent-dark">
+            <Flame className="h-3.5 w-3.5 text-brand-accent-dark" strokeWidth={2.5}/>
             {((recipe.calories ?? 0) * servingSize).toFixed(0)}
           </span>
         )}

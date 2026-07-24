@@ -90,7 +90,7 @@ export function DayCard({
 
       <div className="rounded-xl bg-brand-stat-bg p-3">
         <div className="font-heading flex items-center gap-1.5 text-sm font-bold">
-          <Flame className="h-4 w-4 text-brand-accent" strokeWidth={2.5} />
+          <Flame className="h-4 w-4 text-brand-accent-dark" strokeWidth={2.5} />
           {totals.calories.toFixed(0)}
           {nutritionTargets.calories_target_enabled
             ? `/${nutritionTargets.calories_target.toFixed(0)}`

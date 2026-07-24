@@ -18,7 +18,7 @@ interface MobileTabBarProps {
 
 export function MobileTabBar({ activeTab, onTabChange }: MobileTabBarProps) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-card-border bg-white lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-brand-card-border bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
       {TABS.map(({ value, label, Icon }) => {
         const isActive = value === activeTab;
 
