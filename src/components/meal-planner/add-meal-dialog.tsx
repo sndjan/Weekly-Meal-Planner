@@ -223,7 +223,10 @@ export function AddMealDialog({
           <Plus className="h-4 w-4 text-brand-icon-muted" />
         </button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent
+        className="sm:max-w-2xl"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>
             {MEAL_TYPE_LABELS[mealType]} hinzufügen für {WEEK_DAYS[dayOfWeek] ?? dayOfWeek}
